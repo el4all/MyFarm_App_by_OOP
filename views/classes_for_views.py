@@ -1197,6 +1197,7 @@ class ShowProcess(ft.View):
         formed = ft.TextField(label="🏡",width=50,keyboard_type=ft.KeyboardType.NUMBER,)
 
 
+
         return block, alive, dead, formed
 
 
