@@ -857,6 +857,7 @@ class Bunny:
         return palpation_day
 
     def get_palpation(self, result, palp_date=None):
+        print(self.name)
         if palp_date is None:
             palp_date = date.today()
         if result == '-':

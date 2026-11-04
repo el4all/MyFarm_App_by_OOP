@@ -1029,6 +1029,7 @@ class ShowProcess(ft.View):
 
         self.elements_for_processes = {}
         self.data_for_processes = {}
+        self.open_tiles = set()
 
         self.appbar = CustomAppBar(title=ft.Row([ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_BACK_IOS),
                                                                on_click=lambda e: self.turn_process_by_date(False)),
@@ -1061,9 +1062,14 @@ class ShowProcess(ft.View):
                                                                      alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                                                       expand=True)
                                          for x in names
-                                     ]) for process, names in need_data.items()]
+                                     ],
+                                     on_change=lambda e: self._is_open(e, process),
+                                     expanded=process in self.open_tiles) for process, names in need_data.items()]
         else:
             return [ft.Container()]
+
+    def _is_open(self, e, process):
+        self.open_tiles.add(process) if e.data else self.open_tiles.discard(process)
 
     def turn_process_by_date(self, forward: bool):
 
@@ -1187,7 +1193,6 @@ class ShowProcess(ft.View):
         return palpation_result, block
 
     def get_elements_for_kindling(self, name):
-        process_key = 'kindling'
 
         block = ft.IconButton(icon=ft.Icon(ft.Icons.LOCK_OPEN),
                               on_click=lambda e: self.blocking_unblocking_drop_menu_kindling(e, name))
@@ -1197,9 +1202,7 @@ class ShowProcess(ft.View):
         formed = ft.TextField(label="🏡",width=50,keyboard_type=ft.KeyboardType.NUMBER,)
 
 
-
         return block, alive, dead, formed
-
 
     def get_checkboxes_for_simple_operations(self, process, name):
         return ft.Checkbox(label='OK', data=name, value=name in get_value_for_checkboxes(process),
@@ -1313,13 +1316,17 @@ class ShowProcess(ft.View):
         data: dict|None = self.data_for_processes.get(process, None)
         values_for_checkboxes = set(get_value_for_checkboxes(process))
 
+        print('data is',data)
+        print('val_checkboxes is',values_for_checkboxes)
+
         if process == 'mate':
             if data and values_for_checkboxes:
                 planned_mated_rabbits = [x for x in data if data.get(x, None).get('on_fact', None)]
                 if set(planned_mated_rabbits) == values_for_checkboxes:
                     self.farm.mate(data)
 
-                    save_value_for_checkboxes('mate', [])
+                    save_value_for_checkboxes(process, [])
+                    self.data_for_processes[process] = {}
                 else:
                     not_mated = list(set(planned_mated_rabbits) - values_for_checkboxes)
                     report = ', '.join([x for x in not_mated])
@@ -1331,6 +1338,9 @@ class ShowProcess(ft.View):
 
             if data:
                 self.farm.palpation(data)
+
+                self.result_quick_message('Записано', False)
+                self.data_for_processes[process] = {}
                 save_value_for_checkboxes('palpation', [])
             else:
                 self.result_quick_message('Нікого не пальпували', True)
@@ -1339,7 +1349,7 @@ class ShowProcess(ft.View):
             if values_for_checkboxes:
                 opened_nests = [x for x in values_for_checkboxes]
                 self.farm.open_nests(opened_nests)
-                save_value_for_checkboxes('open_nest', [])
+                save_value_for_checkboxes(process, [])
                 self.result_quick_message('Записано', False)
             else:
                 self.result_quick_message('Нічого не відкривали', True)
@@ -1348,7 +1358,7 @@ class ShowProcess(ft.View):
             if values_for_checkboxes:
                 installed_nests = [x for x in values_for_checkboxes]
                 self.farm.open_nests(installed_nests)
-                save_value_for_checkboxes('install_nest', [])
+                save_value_for_checkboxes(process, [])
                 self.result_quick_message('Записано', False)
             else:
                 self.result_quick_message('Нічого не встановлювали', True)
@@ -1357,7 +1367,7 @@ class ShowProcess(ft.View):
             if values_for_checkboxes:
                 prepared_nests = [x for x in values_for_checkboxes]
                 self.farm.prepare_nests(prepared_nests)
-                save_value_for_checkboxes('fill_nest', [])
+                save_value_for_checkboxes(process, [])
                 self.result_quick_message('Записано', False)
             else:
                 self.result_quick_message('Нічого не наповнювали', True)
@@ -1366,5 +1376,10 @@ class ShowProcess(ft.View):
             if data:
                 self.farm.kindling(data)
                 self.result_quick_message('Записано', False)
+
+                save_value_for_checkboxes(process, [])
+                self.data_for_processes[process] = {}
             else:
                 self.result_quick_message('Ніхто ще не окролився', True)
+
+        self._renew_screen()
