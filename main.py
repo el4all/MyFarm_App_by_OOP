@@ -66,8 +66,6 @@ meatberry.load_from_net(farm_dict)
 tasks = []
 
 
-
-
 def main(page: ft.Page):
 
     ROUTES = {'/main_menu': MainMenuView, '/rabbits_list':MainRabbitsList, '/rabbit_card':RabbitCard,

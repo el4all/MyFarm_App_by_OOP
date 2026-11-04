@@ -1196,6 +1196,7 @@ class ShowProcess(ft.View):
         dead = ft.TextField(label="☠️",bgcolor=ft.Colors.RED_500, width=50,keyboard_type=ft.KeyboardType.NUMBER,)
         formed = ft.TextField(label="🏡",width=50,keyboard_type=ft.KeyboardType.NUMBER,)
 
+
         return block, alive, dead, formed
 
 
