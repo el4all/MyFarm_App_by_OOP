@@ -2,7 +2,7 @@ import flet as ft
 
 
 from views.classes_for_views import (MainMenuView,MainRabbitsList,RabbitCard,BlocksFarm,ThirdRoom,BoxInfo,FarmInfo,
-                                     ProcessFarm,ShowProcess)
+                                     ProcessFarm,ShowProcess,NestsList)
 from models.bunny_class import Farm
 from helper_defs import file_from_google
 
@@ -70,7 +70,7 @@ def main(page: ft.Page):
 
     ROUTES = {'/main_menu': MainMenuView, '/rabbits_list':MainRabbitsList, '/rabbit_card':RabbitCard,
               '/blocks_farm': BlocksFarm, '/third_room':ThirdRoom, '/box_info':BoxInfo, '/farm_info':FarmInfo,
-              '/process_farm':ProcessFarm, '/show_process':ShowProcess}
+              '/process_farm':ProcessFarm, '/show_process':ShowProcess, '/nests_list':NestsList}
 
     def route_change(e):
 

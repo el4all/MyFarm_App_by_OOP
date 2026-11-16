@@ -20,7 +20,7 @@ TEMP_FOR_DICT = 'temp_for_dict_type_data.json'
 
 def file_from_google():
     try:
-        response = requests.get(URL_for_testing, timeout=(5,30))
+        response = requests.get(URL, timeout=(5,30))
         response.raise_for_status()
         data = response.json()
         return data

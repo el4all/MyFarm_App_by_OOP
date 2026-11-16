@@ -9,7 +9,7 @@ from helper_defs import (file_upload_google,get_value_for_checkboxes,get_temp_fo
 from models.bunny_class import Farm, Bunny, Box, STATUS_FOR_STR, STATUS_WORK
 from views.components import FarmSortBar,LeftBlock,RightBlock,BlockNumberSix
 from models.python_logic import (preparing_work_data,preparing_data_for_blocks_in_third_room,average_age_farm,
-                                 get_planned_work)
+                                 get_planned_work, get_status_for_mate)
 
 COLOR_STATUS = dict([('new', ft.Colors.GREEN_500), ('culling', ft.Colors.RED_500), ('waiting_for_kindling', ft.Colors.BLUE_500),
                      ('mated',ft.Colors.YELLOW_500), ('mated_mother',ft.Colors.YELLOW_500),
@@ -57,6 +57,8 @@ class MainMenuView(ft.View):
                                                       on_click=lambda e: self._to_next_screen('/rabbits_list')),
                                           ft.ListTile(leading=ft.Icon(ft.Icons.GRID_VIEW), title=ft.Text('Блоки'),
                                                       on_click=lambda e: self._to_next_screen('/blocks_farm')),
+                                          ft.ListTile(leading=ft.Icon(ft.Icons.CRUELTY_FREE), title=ft.Text('Гнізда'),
+                                                      on_click=lambda e: self._to_next_screen('/nests_list')),
                                           ft.ListTile(leading=ft.Icon(ft.Icons.MENU_BOOK), title=ft.Text('Відгодівля'),
                                                       on_click=lambda e: self._to_next_screen('/third_room')),
                                           ft.ListTile(leading=ft.Icon(ft.Icons.DELETE_FOREVER), title=ft.Text('Вибраківка'),
@@ -280,6 +282,7 @@ class RabbitCard(ft.View):
         receive_data = main_page.data
         if isinstance(receive_data, Bunny):
             self.rabbit: Bunny | None = receive_data
+            main_page.data = None
         else:
             self.rabbit = None
 
@@ -406,10 +409,10 @@ class RabbitCard(ft.View):
         if self.farm.notes.get(self.rabbit.name, None):
             for x in self.farm.notes.get(self.rabbit.name):
                 for date_, note in x.items():
-                    item = ft.Row([ft.Text(f'{date_}', color=ft.Colors.RED_500),
-                                   ft.Text(': '),
-                                  ft.Text(f'{note}')
-                                  ])
+                    item = ft.ListTile(leading=ft.Text(f'{date_}', size=18, color=ft.Colors.RED_500),
+                                       title=ft.Text(f'{note}', size=15),
+                                       trailing=ft.IconButton(icon=ft.Icon(ft.Icons.DELETE))
+                                       )
                     notes.controls.append(item)
         else:
             notes.controls = [ft.Container()]
@@ -1022,6 +1025,7 @@ class ShowProcess(ft.View):
     def __init__(self, main_page: ft.Page, farm: Farm):
         super().__init__(route='/show_process', scroll=ft.ScrollMode.AUTO)
         self.main_page = main_page
+        main_page.data = main_page.data if main_page.data else date.today()
         self.farm = farm
 
         self.need_date = self.main_page.data
@@ -1031,12 +1035,12 @@ class ShowProcess(ft.View):
         self.data_for_processes = {}
         self.open_tiles = set()
 
-        self.appbar = CustomAppBar(title=ft.Row([ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_BACK_IOS),
-                                                               on_click=lambda e: self.turn_process_by_date(False)),
-                                                 self.text_for_title,
-                                                 ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_FORWARD_IOS),
-                                                               on_click=lambda e: self.turn_process_by_date(True))
-                                                 ], alignment=ft.MainAxisAlignment.CENTER))
+        self.appbar = CustomAppBar(left_up=ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_BACK_IOS),
+                                                         on_click=lambda e: self.turn_process_by_date(False)),
+                                   title=self.text_for_title,
+                                   right_up=ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_FORWARD_IOS),
+                                                          on_click=lambda e: self.turn_process_by_date(True))
+                                   )
         self.bottom_appbar = CustomBottomBar()
         self.date_picker = ft.DatePicker(help_text='Оберіть нову дату', cancel_text='Скасувати',
                                          confirm_text='Змінити\n   дату',
@@ -1046,8 +1050,10 @@ class ShowProcess(ft.View):
 
     def get_controls(self):
         need_data: dict|None = get_planned_work(self.farm, self.need_date)
+        print(need_data)
         if need_data:
-            return [ft.ExpansionTile(title=ft.Row(controls=[ft.TextButton(ft.Text(STATUS_WORK.get(process).capitalize()),
+            return [ft.ExpansionTile(title=ft.Row(controls=[ft.TextButton(ft.Text(f'{STATUS_WORK.get(process).capitalize()} '
+                                                                                  f'({len(need_data.get(process))})'),
                                                                           on_click=lambda e, p=process: self.finally_get_process(p)),
                                                             ft.Row([
                                                                 ft.TextButton(ft.Text('Змінити дату',color=ft.Colors.RED_500),
@@ -1055,12 +1061,16 @@ class ShowProcess(ft.View):
                                                             ft.Text(10*' ')])],
                                                   alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                                      controls=[
-                                         ft.Container(content=ft.Row([ft.Text(f'{x} -- {self.farm.rabbits[x].str_block_box}')
-                                         if process != 'mass_kill'
-                                         else ft.Text(f'{x} -- {self.farm.third_room[x].quantity} шт.'),
+                                         ft.Container(content=ft.Row([ft.Icon(ft.Icons.PETS,
+                                                                              color=COLOR_STATUS.get(self.farm.rabbits[x].status, None))
+                                                                         if process != 'mass_kill' else ft.Icon(ft.Icons.GRID_VIEW),
+                                                                      ft.Text(value=f'{x} -- {self.farm.rabbits[x].str_block_box}')
+                                                                      if process != 'mass_kill'
+                                                                      else ft.Text(f'{x} -- {self.farm.third_room[x].quantity} шт.'),
                                                                       self.get_trailing_tile_by_process(process, x)],
                                                                      alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                                                      expand=True)
+                                                      expand=True, data=self.farm.rabbits[x] if process != 'mass_kill' else self.farm.third_room[x],
+                                                      on_click=lambda e: self._to_next_screen(e, '/rabbit_card'))
                                          for x in names
                                      ],
                                      on_change=lambda e: self._is_open(e, process),
@@ -1070,6 +1080,19 @@ class ShowProcess(ft.View):
 
     def _is_open(self, e, process):
         self.open_tiles.add(process) if e.data else self.open_tiles.discard(process)
+
+    def _to_next_screen(self, e, next_screen: str):
+            self.main_page.data = e.control.data
+            self.main_page.navigate(next_screen)
+
+    def quick_message(self, text: str, is_error: bool):
+
+        color = ft.Colors.BLUE_700 if not is_error else ft.Colors.RED_700
+
+        self.snack_bar = ft.SnackBar(content=text, bgcolor=color, duration=2000, show_close_icon=True)
+        self.main_page.overlay.append(self.snack_bar)
+        self.snack_bar.open = True
+        self.main_page.update()
 
     def turn_process_by_date(self, forward: bool):
 
@@ -1153,10 +1176,42 @@ class ShowProcess(ft.View):
                 self.elements_for_processes.setdefault(name, {})['dead'] = dead
                 self.elements_for_processes.setdefault(name, {})['formed'] = formed
                 trailing = ft.Row([alive, dead, formed, block])
+            case 'remove_nest':
+                checkbox, quantity_field = self.get_elements_for_remove_nest(name)
+                self.elements_for_processes.setdefault(name, {})['remove_nest_quantity'] = quantity_field
+                trailing = ft.Row([quantity_field, checkbox])
+            case 'resettle':
+                checkbox, quantity_field = self.get_elements_for_resettle(name)
+                self.elements_for_processes.setdefault(name, {})['resettle_quantity'] = quantity_field
+                trailing = ft.Row([quantity_field, checkbox])
             case _:
                 trailing = ft.Text('Ще не зроблено')
 
         return trailing
+
+    def get_content_for_controls(self, process: str, name: str):
+        main_cont = ft.Container(
+            ft.Row(
+                [
+                    ft.Container(
+                        ft.Column(
+                            [
+                                ft.Row(
+                                    [
+                                        ft.Icon(ft.Icons.PETS, color=COLOR_STATUS.get(self.farm.rabbits[name].status,
+                                                                                      None)) if process != 'mass_kill' else ft.Icon(
+                                            ft.Icons.GRID_VIEW),
+                                        ft.Text(
+                                            value=f'{name} -- {self.farm.rabbits[name].str_block_box}') if process != 'mass_kill' else ft.Text(
+                                            f'{name} -- {self.farm.third_room[name].quantity} шт.')
+                                    ]
+                                )
+                            ]
+                        )
+                    )
+                ]
+            )
+        )
 
     def get_elements_for_mate(self, name):
 
@@ -1204,9 +1259,39 @@ class ShowProcess(ft.View):
 
         return block, alive, dead, formed
 
+    def get_elements_for_remove_nest(self, name):
+
+        quantity_field = ft.TextField(label='Кількість', width=100, keyboard_type=ft.KeyboardType.NUMBER,
+                                      on_change=lambda e: self._handle_processing_for_remove_nest(e, name, True))
+        checkbox = ft.Checkbox(label='OK', data=name, value=name in get_value_for_checkboxes('remove_nest'),
+                               on_change=lambda e, process='remove_nest': self._handle_checkbox_for_process(e, process, name))
+        return checkbox, quantity_field
+
+    def get_elements_for_resettle(self, name):
+        quantity_field = ft.TextField(label='Кількість', width=100, keyboard_type=ft.KeyboardType.NUMBER,
+                                      on_change=lambda e: self._handle_processing_for_remove_nest(e, name, False))
+        checkbox = ft.Checkbox(label='OK', data=name, value=name in get_value_for_checkboxes('resettle'),
+                               on_change=lambda e, process='resettle': self._handle_checkbox_for_process(e, process, name))
+        return checkbox, quantity_field
+
     def get_checkboxes_for_simple_operations(self, process, name):
         return ft.Checkbox(label='OK', data=name, value=name in get_value_for_checkboxes(process),
                            on_change=lambda e, process=process: self._handle_checkbox_for_process(e, process, name))
+
+    def _handle_processing_for_remove_nest(self, e, name, stay_in_box: bool):
+        field = e.control
+        field.filled = True
+        if field.value and field.value.strip().isdigit():
+            field.fill_color = ft.Colors.GREEN_500
+            if stay_in_box:
+                self.data_for_processes.setdefault('remove_nest', {})[name] = field.value
+            else:
+                self.data_for_processes.setdefault('resettle', {})[name] = field.value
+        elif field.value and not field.value.strip().isdigit():
+            field.fill_color = ft.Colors.RED_500
+        else:
+            field.fill_color = ft.Colors.YELLOW_300
+        field.update()
 
     def _handle_processing_mate(self, e, state: str, name: str):
         field = e.control
@@ -1382,4 +1467,94 @@ class ShowProcess(ft.View):
             else:
                 self.result_quick_message('Ніхто ще не окролився', True)
 
+        elif process == 'remove_nest':
+            if data:
+                self.farm.remove_nests(data)
+                self.result_quick_message('Записано', False)
+
+                save_value_for_checkboxes(process, [])
+                self.data_for_processes[process] = {}
+            else:
+                self.result_quick_message('Ще не видаляли гнізда', True)
+
+        elif process == 'resettle':
+            if data:
+                self.farm.resettle(data)
+                self.result_quick_message('Записано', False)
+
+                save_value_for_checkboxes(process, [])
+                self.data_for_processes[process] = {}
+            else:
+                self.result_quick_message('Ще не переселяли', True)
+
+
         self._renew_screen()
+
+
+class NestsList(ft.View):
+    def __init__(self, main_page: ft.Page, farm: Farm):
+        super().__init__(route='/nests_list', scroll=ft.ScrollMode.AUTO)
+        self.main_page = main_page
+        self.farm = farm
+
+        self.appbar = CustomAppBar(title='Гнізда')
+        self.bottom_appbar = CustomBottomBar()
+
+        self.controls = self._get_controls()
+
+    def _get_controls(self):
+        return [self.get_tile_for_nest(rabbit) for rabbit in self.farm.rabbits.values() if rabbit.nest]
+
+    def _controls_update(self):
+        self.controls = self._get_controls()
+        self.update()
+
+    def _to_next_screen(self, e, next_screen: str):
+            self.main_page.data = e.control.data
+            self.main_page.navigate(next_screen)
+
+    def get_tile_for_nest(self, rabbit: Bunny):
+        status_nest_dict = {'install': ft.Icon(ft.Icons.HOURGLASS_EMPTY),
+                            'prepare': ft.Icon(ft.Icons.HOURGLASS_TOP),
+                            'open': ft.Icon(ft.Icons.LOCK_OPEN),
+                            'closed': ft.Icon(ft.Icons.LOCK),
+                            'remove': ft.Icon(ft.Icons.REMOVE)}
+        return ft.ListTile(leading=ft.Icon(ft.Icons.PETS),
+                           title=ft.Row([ft.Text(f'{rabbit.name} -- {rabbit.str_block_box}'),
+                                         ft.Divider(),
+                                         ft.Text(f'🐇 {rabbit.nest.bunnies.get('alive',0)}/{rabbit.nest.bunnies.get('formed',0)}'),
+                                         ft.Divider(),
+                                         ft.Text(f'📅 {rabbit.nest.nest_age} дн.')],
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                           data=rabbit, trailing=status_nest_dict.get(rabbit.nest.status, ft.Icon(ft.Icons.HELP_OUTLINE)),
+                           on_click=lambda e: self._to_next_screen(e, '/rabbit_card'),
+                           on_long_press=lambda e: self._actions_with_nest(e)
+                           )
+
+    def _actions_with_nest(self, e):
+        rabbit_obj = e.control.data
+        plus = ft.Container(ft.Icon(ft.Icons.PLUS_ONE, color=ft.Colors.BLUE_500),
+                            on_click=lambda e: self.change_quantity(rabbit_obj, True))
+        minus = ft.Container(ft.Icon(ft.Icons.EXPOSURE_MINUS_1, color=ft.Colors.RED_500),
+                             on_click=lambda e: self.change_quantity(rabbit_obj, False))
+        delete = ft.Container(ft.Text('LN', size=20, weight=ft.FontWeight.BOLD),
+                              on_click=lambda e: (self.farm.loose_nest([rabbit_obj.name]), self._controls_update()))
+        back = ft.Container(ft.Icon(ft.Icons.ARROW_BACK_IOS), on_click=lambda e: _go_back(e))
+        close = ft.Container(ft.Icon(ft.Icons.CLOSE), on_click=self.change_bottom_appbar_to_started)
+        self.bottom_appbar.content = ft.Row([plus,minus,delete,close,back], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        self.bottom_appbar.update()
+
+    def change_bottom_appbar_to_started(self):
+        back = ft.Container(ft.Icon(ft.Icons.ARROW_BACK_IOS), on_click=lambda e: _go_back(e))
+        self.bottom_appbar.content = ft.Row([ft.Container(),back], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        self.bottom_appbar.update()
+
+    def change_quantity(self, rabbit_obj: Bunny, increase: bool):
+        if increase:
+            rabbit_obj.nest.bunnies['alive'] += 1
+        else:
+            if rabbit_obj.nest.bunnies['alive'] >= 1:
+                rabbit_obj.nest.bunnies['alive'] -= 1
+            else:
+                rabbit_obj.nest.bunnies['alive'] = 0
+        self._controls_update()

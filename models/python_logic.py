@@ -47,7 +47,7 @@ def get_planned_work(farm: Farm, need_date: date):
 
     for obj in farm.rabbits.values():
         for process, day in obj.all_planing_dates.items():
-            if day == need_date:
+            if day == need_date and obj.status != 'culling':
                 filtered_data.setdefault(process, []).append(obj.name)
 
     for box in farm.third_room.values():
@@ -61,5 +61,10 @@ def get_planned_work(farm: Farm, need_date: date):
 
     return final_data
 
-def is_digit(x: str):
-    return x.isdigit()
+def get_status_for_mate(farm: Farm, name: str):
+    if farm.rabbits[name].status == 'new':
+        return 'new'
+    elif farm.rabbits[name].status == 'mother' or 'mother*' and isinstance(farm.rabbits[name].history[-1], list):
+        return 'mother'
+    else:
+        return None

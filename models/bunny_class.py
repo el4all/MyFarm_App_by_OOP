@@ -166,8 +166,8 @@ class Farm:
             else:
                 logger.info(f'{name} not founded.')
 
-    def remove_nests(self, list_of_rabbits, list_of_quantity):
-        for name, quantity in zip(list_of_rabbits, list_of_quantity):
+    def remove_nests(self, data: dict[str, int]):
+        for name, quantity in data.items():
             if name in self.rabbits:
                 if self.rabbits[name].nest is not None:
                     self.rabbits[name].nest.remove_nest()
@@ -357,7 +357,7 @@ class Farm:
             obj.nest = None
             obj.status = 'mother*'
             for i in range(len(obj.history)-1, -1, -1):
-                if isinstance(obj.history[i], list):
+                if '/' in obj.history[i]:
                     obj.history[i] = 'LN'
                     break
             logger.info(f'{name} loose nest.')
@@ -857,7 +857,6 @@ class Bunny:
         return palpation_day
 
     def get_palpation(self, result, palp_date=None):
-        print(self.name)
         if palp_date is None:
             palp_date = date.today()
         if result == '-':
@@ -1008,7 +1007,7 @@ class Nest:
         self.date_open = None
         self.date_remove = None
 
-    def install_nest(self, install: date=None):
+    def install_nest(self, install: date|None=None):
         if install is None:
             install = date.today()
 
