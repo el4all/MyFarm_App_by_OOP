@@ -2,7 +2,7 @@ import flet as ft
 
 
 from views.classes_for_views import (MainMenuView,MainRabbitsList,RabbitCard,BlocksFarm,ThirdRoom,BoxInfo,FarmInfo,
-                                     ProcessFarm,ShowProcess,NestsList)
+                                     ProcessFarm,ShowProcess,NestsList,on_keyboard_event)
 from models.bunny_class import Farm
 from helper_defs import file_from_google
 
@@ -95,7 +95,7 @@ def main(page: ft.Page):
         # page.route = previous_screen.route
         # page.update()
 
-
+    page.on_keyboard_event = on_keyboard_event
     page.on_route_change = route_change
     page.on_view_pop = view_pop
     page.views.clear()

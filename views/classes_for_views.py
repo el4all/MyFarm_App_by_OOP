@@ -4,10 +4,12 @@ import flet as ft
 
 from datetime import date, timedelta
 
+from flet.controls import border
+
 from helper_defs import (file_upload_google,get_value_for_checkboxes,get_temp_for_dict_type, save_value_for_checkboxes,
                          save_temp_for_dict_type)
 from models.bunny_class import Farm, Bunny, Box, STATUS_FOR_STR, STATUS_WORK
-from views.components import FarmSortBar,LeftBlock,RightBlock,BlockNumberSix
+from views.components import FarmSortBar,LeftBlock,RightBlock,BlockNumberSix, get_elements_for_bottom_bar
 from models.python_logic import (preparing_work_data,preparing_data_for_blocks_in_third_room,average_age_farm,
                                  get_planned_work, get_status_for_mate)
 
@@ -25,12 +27,18 @@ def _go_back(e: ft.Event):
         previous_screen = page.views[-1]
         page.navigate(previous_screen.route)
 
+def on_keyboard_event(e: ft.KeyboardEvent):
+    if e.key == "Escape":
+        _go_back(e)
+
 
 class CustomBottomBar(ft.BottomAppBar):
     def __init__(self, left_control: ft.Control|None = None):
         right_button = ft.Container(ft.Icon(ft.Icons.ARROW_BACK_IOS), on_click=lambda e: _go_back(e))
+        home, blocks, nests, processes, feeding ,info = get_elements_for_bottom_bar()
 
-        super().__init__(content=ft.Row(controls=[ft.Container() if left_control is None else left_control,right_button],
+        super().__init__(bgcolor=ft.Colors.WHITE_70,
+                         content=ft.Row(controls=[home, blocks, nests, processes, feeding, info],
                                       alignment=ft.MainAxisAlignment.SPACE_BETWEEN))
 
 
@@ -48,28 +56,66 @@ class MainMenuView(ft.View):
         self.main_page = main_page
         self.farm = farm
         self.title_label = ft.Text('Головне меню ферми', size=20)
-        self.theme_change_btn = ft.IconButton(icon=ft.Icon(ft.Icons.SUNNY), on_click=self.change_theme)
+        self.theme_change_btn = ft.IconButton(icon=ft.Icon(ft.Icons.SETTINGS), on_click=self.change_theme)
         self.sync_btn = ft.IconButton(icon=ft.Icon(ft.Icons.SYNC), on_click=self._synchronization)
         self.bottom_appbar = CustomBottomBar(left_control=None)
         self.appbar = CustomAppBar(left_up=self.theme_change_btn, title=self.title_label, right_up=self.sync_btn)
-        self.controls = [ft.Column(controls=[ft.Text('Головне меню ферми', size=16, weight=ft.FontWeight.W_500),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.PETS), title=ft.Text('Кролиці'),
-                                                      on_click=lambda e: self._to_next_screen('/rabbits_list')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.GRID_VIEW), title=ft.Text('Блоки'),
-                                                      on_click=lambda e: self._to_next_screen('/blocks_farm')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.CRUELTY_FREE), title=ft.Text('Гнізда'),
-                                                      on_click=lambda e: self._to_next_screen('/nests_list')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.MENU_BOOK), title=ft.Text('Відгодівля'),
-                                                      on_click=lambda e: self._to_next_screen('/third_room')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.DELETE_FOREVER), title=ft.Text('Вибраківка'),
-                                                      on_click=lambda e: self._to_next_screen('/rabbits_list')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.ADS_CLICK), title=ft.Text('Процеси'),
-                                                      on_click=lambda e: self._to_next_screen('/process_farm')),
-                                          ft.ListTile(leading=ft.Icon(ft.Icons.INFO), title=ft.Text('Інформація'),
-                                                      on_click=lambda e: self._to_next_screen('/farm_info'))])]
+        # self.controls = [ft.Column(controls=[ft.Text('Головне меню ферми', size=16, weight=ft.FontWeight.W_500),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.PETS), title=ft.Text('Кролиці'),
+        #                                               on_click=lambda e: self._to_next_screen('/rabbits_list')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.GRID_VIEW), title=ft.Text('Блоки'),
+        #                                               on_click=lambda e: self._to_next_screen('/blocks_farm')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.CRUELTY_FREE), title=ft.Text('Гнізда'),
+        #                                               on_click=lambda e: self._to_next_screen('/nests_list')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.MENU_BOOK), title=ft.Text('Відгодівля'),
+        #                                               on_click=lambda e: self._to_next_screen('/third_room')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.DELETE_FOREVER), title=ft.Text('Вибраківка'),
+        #                                               on_click=lambda e: self._to_next_screen('/rabbits_list')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.ADS_CLICK), title=ft.Text('Процеси'),
+        #                                               on_click=lambda e: self._to_next_screen('/process_farm')),
+        #                                   ft.ListTile(leading=ft.Icon(ft.Icons.INFO), title=ft.Text('Інформація'),
+        #                                               on_click=lambda e: self._to_next_screen('/farm_info'))])]
+        self.get_elements_for_today_works()
+        total_working_rabbits_widget, feeding_rabbits_widget, bunnies_widget, culling_widget = self.get_elements_for_quantity_widget()
+        self.controls = [
+            ft.Column(
+                [
+                    ft.Container(
+                        ft.Row(
+                            [
+                                total_working_rabbits_widget,
+                                feeding_rabbits_widget,
+                                bunnies_widget,
+                                culling_widget
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            spacing=2
+                        ),
+                        border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+                        border_radius=5,
+                        padding=ft.Padding.all(2)
+                    ),
+                    ft.Container(
+                        ft.Column(
+                            [
+                                self.yesterday_work_widget,
+                                self.today_work_widget,
+                                self.tomorrow_work_widget
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            spacing=2
+                        ),
+                        border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+                        border_radius=5,
+                        padding=ft.Padding.all(2)
+                    )
+                ]
+            )
+        ]
 
     def change_theme(self):
         self.main_page.theme_mode = ft.ThemeMode.DARK if self.main_page.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
+        self.bottom_appbar.bgcolor = ft.Colors.WHITE_70 if self.main_page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLACK_12
         self.main_page.update()
 
     def _to_next_screen(self, next_screen: str):
@@ -84,6 +130,80 @@ class MainMenuView(ft.View):
         self.main_page.overlay.append(self.snack_bar)
         self.snack_bar.open = True
         self.main_page.update()
+
+    def get_elements_for_quantity_widget(self):
+        total_working_rabbits = len([x for x in self.farm.rabbits.values() if x.status != 'culling'])
+        feeding_rabbits = sum([x.quantity for x in self.farm.third_room.values() if x.quantity])
+        bunnies = sum([x.nest.bunnies.get('alive',0) for x in self.farm.rabbits.values() if x.nest])
+        culling = len([x for x in self.farm.rabbits.values() if x.status == 'culling'])
+
+        total_working_rabbits_widget = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.CRUELTY_FREE, color=ft.Colors.BLUE_700),
+                    ft.Text('Робоче\n стадо',  weight=ft.FontWeight.W_500),
+                    ft.Text(f'{total_working_rabbits}', size=20, weight=ft.FontWeight.BOLD)
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ),
+            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border_radius=5,
+            expand=True,
+            bgcolor=ft.Colors.SURFACE
+        )
+
+        feeding_rabbits_widget = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.CRUELTY_FREE),
+                    ft.Text('Відгодівля\n ', weight=ft.FontWeight.W_500),
+                    ft.Text(f'{feeding_rabbits}', size=20, weight=ft.FontWeight.BOLD)
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ),
+            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border_radius=5,
+            expand=True,
+            bgcolor=ft.Colors.SURFACE
+        )
+
+        bunnies_widget = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.CRUELTY_FREE, color=ft.Colors.GREEN_700),
+                    ft.Text('Кролики\n ', weight=ft.FontWeight.W_500),
+                    ft.Text(f'{bunnies}', size=20, weight=ft.FontWeight.BOLD)
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ),
+            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border_radius=5,
+            expand=True,
+            bgcolor=ft.Colors.SURFACE
+        )
+
+        culling_widget = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.CRUELTY_FREE, color=ft.Colors.RED_700),
+                    ft.Text('Брак\n ', weight=ft.FontWeight.W_500),
+                    ft.Text(f'{culling}', size=20, weight=ft.FontWeight.BOLD)
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ),
+            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border_radius=5,
+            expand=True,
+            bgcolor=ft.Colors.SURFACE
+        )
+
+        return total_working_rabbits_widget, feeding_rabbits_widget, bunnies_widget, culling_widget
+
+    def get_elements_for_today_works(self):
+
+
+        yesterday_widget
+
 
 
 class MainRabbitsList(ft.View):
@@ -393,9 +513,11 @@ class RabbitCard(ft.View):
 
     def rewrite_boxes(self):
         name = self.rabbit.name if self.rabbit else None
-        move_from = self.rabbit.str_block_box
-        move_in = f'{self.block_field.value}.{self.box_field.value}'
-        self.farm.swap_box(move_from, move_in, name)
+        from_block = self.rabbit.block
+        from_box = self.rabbit.box
+        to_block = int(self.block_field.value)
+        to_box = int(self.box_field.value)
+        self.farm.swap_box(from_block, from_box, to_block, to_box, name)
         self._close_dialog()
         self.renew_card()
 
@@ -622,15 +744,21 @@ class ThirdRoom(ft.View):
                                          on_change=self._open_dialog)
         self.main_page.overlay.append(self.date_picker)
 
-        self.controls = [ft.ExpansionTile(title=ft.Row([ft.Icon(ft.Icons.GRID_VIEW),ft.Text(f'Блок {block}')]),
-                                          on_change=lambda e, b=block: self._handle_expended(b,e.control.expanded),
-                                          expanded=block in self.expanded_tile,
-                                          subtitle=ft.Text(self.get_info_for_blocks(block)),
-                                          controls=[self.get_tile_for_expansion(x, False)
+        self.controls = [
+            ft.ExpansionTile(
+                title=ft.Row([ft.Icon(ft.Icons.GRID_VIEW),ft.Text(f'Блок {block}')]),
+                    on_change=lambda e, b=block: self._handle_expended(b,e.control.expanded),
+                    expanded=block in self.expanded_tile,
+                    subtitle=ft.Text(self.get_info_for_blocks(block)),
+                    controls=[self.get_tile_for_expansion(x, False)
                                                     for x in
                                                     sorted(self.farm.third_room.values(), key=lambda x: int(x.box)) if
                                                     x.block == block])
-                         for block in sorted([x for x in set([r.block for r in self.farm.third_room.values()])])]
+                         for block in sorted([x for x in set([r.block for r in self.farm.third_room.values()]
+                                                             )
+                                              ]
+                                             )
+        ]
 
     def _to_next_screen(self, e, next_screen: str):
         self.main_page.data = e.control.data
@@ -1048,7 +1176,7 @@ class ShowProcess(ft.View):
 
         self.controls = self.get_controls()
 
-    def get_controls(self):
+    def get_controls(self) -> list[ft.BaseControl]:
         need_data: dict|None = get_planned_work(self.farm, self.need_date)
         print(need_data)
         if need_data:
@@ -1184,6 +1312,11 @@ class ShowProcess(ft.View):
                 checkbox, quantity_field = self.get_elements_for_resettle(name)
                 self.elements_for_processes.setdefault(name, {})['resettle_quantity'] = quantity_field
                 trailing = ft.Row([quantity_field, checkbox])
+            case 'swap_box':
+                new_block, new_box, block = self.get_elements_for_swap_box(name)
+                trailing = ft.Row([new_block, new_box, block])
+                self.elements_for_processes.setdefault(name, {})['swap_box_new_block'] = new_block
+                self.elements_for_processes.setdefault(name, {})['swap_box_new_box'] = new_box
             case _:
                 trailing = ft.Text('Ще не зроблено')
 
@@ -1274,6 +1407,16 @@ class ShowProcess(ft.View):
                                on_change=lambda e, process='resettle': self._handle_checkbox_for_process(e, process, name))
         return checkbox, quantity_field
 
+    def get_elements_for_swap_box(self, name):
+        new_block = ft.TextField(label='Новий блок', width=100, keyboard_type=ft.KeyboardType.NUMBER,
+                                      on_change=lambda e: self.color_field_for_swap_box(e))
+        new_box = ft.TextField(label='Нова клітка', width=100, keyboard_type=ft.KeyboardType.NUMBER,
+                                     on_change=lambda e: self.color_field_for_swap_box(e))
+        block = ft.IconButton(icon=ft.Icon(ft.Icons.LOCK_OPEN),
+                              on_click=lambda e: self.blocking_unblocking_drop_menu_swap_box(e, name))
+
+        return new_block, new_box, block
+
     def get_checkboxes_for_simple_operations(self, process, name):
         return ft.Checkbox(label='OK', data=name, value=name in get_value_for_checkboxes(process),
                            on_change=lambda e, process=process: self._handle_checkbox_for_process(e, process, name))
@@ -1318,6 +1461,17 @@ class ShowProcess(ft.View):
         field.update()
 
         self.data_for_processes.setdefault('palpation', {})[name] = field.value
+
+    def color_field_for_swap_box(self, e):
+        field = e.control
+        field.filled = True
+        if field.value and field.value.strip().isdigit():
+            field.fill_color = ft.Colors.GREEN_500
+        elif field.value and not field.value.strip().isdigit():
+            field.fill_color = ft.Colors.RED_500
+        else:
+            field.fill_color = ft.Colors.YELLOW_300
+        field.update()
 
     def blocking_unblocking_drop_menu_mate(self, e, name):
 
@@ -1394,6 +1548,36 @@ class ShowProcess(ft.View):
             else:
                 self.result_quick_message('Перевірте дані', True)
             print(self.data_for_processes)
+
+        block.update()
+
+    def blocking_unblocking_drop_menu_swap_box(self, e, name):
+        block = e.control
+        new_block = self.elements_for_processes.get(name, None).get('swap_box_new_block', None)
+        new_box = self.elements_for_processes.get(name, None).get('swap_box_new_box', None)
+        fields = [new_block, new_box]
+
+        if new_block.disabled and new_box.disabled:
+            block.icon = ft.Icon(ft.Icons.LOCK_OPEN)
+            if new_block:
+                new_block.disabled = False
+                new_block.update()
+            if new_box:
+                new_box.disabled = False
+                new_box.update()
+        else:
+            if all(x.value and x.value.strip().isdigit() for x in fields):
+                self.data_for_processes.setdefault('swap_box', {}).setdefault(name, {})['new_block'] = int(new_block.value.strip())
+                self.data_for_processes.setdefault('swap_box', {}).setdefault(name, {})['new_box'] = int(new_box.value.strip())
+                block.icon = ft.Icon(ft.Icons.LOCK)
+                if new_block:
+                    new_block.disabled = True
+                    new_block.update()
+                if new_box:
+                    new_box.disabled = True
+                    new_box.update()
+            else:
+                self.result_quick_message('Перевірте дані', True)
 
         block.update()
 
@@ -1486,6 +1670,21 @@ class ShowProcess(ft.View):
                 self.data_for_processes[process] = {}
             else:
                 self.result_quick_message('Ще не переселяли', True)
+
+        elif process == 'swap_box':
+            if data:
+                for name, address in data.items():
+                    old_block = self.farm.rabbits[name].block
+                    old_box = self.farm.rabbits[name].box
+                    new_block = address.get('new_block')
+                    new_box = address.get('new_box')
+                    self.farm.swap_box(old_block, old_box, new_block, new_box, name)
+                self.result_quick_message('Записано', False)
+
+                save_value_for_checkboxes(process, [])
+                self.data_for_processes[process] = {}
+            else:
+                self.result_quick_message('Нікого не переселяли', True)
 
 
         self._renew_screen()

@@ -1,8 +1,7 @@
-from zipfile import sizeCentralDir
-
 import flet as ft
 
 from models.bunny_class import Farm, Bunny
+from models.python_logic import get_data_widget_for_works_by_day, preparing_work_data
 
 BOXES = dict([(1,20),(2,20),(3,20),(4,20),(5,20),(6,25),(7,20),(8,20),(9,20),(10,20),(11,12),(12,12)])
 COLOR_STATUS = dict([('new', ft.Colors.GREEN_500), ('culling', ft.Colors.RED_500), ('waiting_for_kindling', ft.Colors.BLUE_500),
@@ -146,6 +145,88 @@ class BlockNumberSix(BlockForVisual):
         self.right_higher_second_row = [15,13,11,9,7]
 
         self._build_main_container()
+
+
+def get_elements_for_bottom_bar():
+
+    home = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.HOME, size=20),
+                ft.Text('Головна', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    blocks = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.APPS, size=20),
+                ft.Text('Блоки', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    nests = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.CRUELTY_FREE, size=20),
+                ft.Text('Гнізда', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    info = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.INFO, size=20),
+                ft.Text('Інфо', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    feeding = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.GRASS, size=20),
+                ft.Text('Відгодівля', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    processes = ft.Container(
+        ft.Column(
+            [
+                ft.Icon(ft.Icons.CALENDAR_MONTH, size=20),
+                ft.Text('Процеси', size=10)
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    return home,blocks, nests, processes, feeding,info
+
+def get_widget_for_works_by_day(data: dict[str, list[str]]|None):
+    if data:
+        widgets = ft.Column()
+        for work, names in data.items():
+            little_widget = ft.Container(
+                ft.Row(
+                    [
+
+                    ]
+                )
+            )
+
+
+
+
+
 
 
 

@@ -281,8 +281,13 @@ class Farm:
         except Exception as e:
             return False
 
-    def move_to_3rd_room_repare(self, block, box, quantity, birth):
-        pass
+    def resettle(self, data: dict[str,int], resettle_date=None):
+        for name, quantity in data.items():
+            if name in self.rabbits:
+                self.rabbits[name].get_resettle_bunnies(quantity, resettle_date)
+                logger.info(f'{name} resettle {quantity} bunnies.')
+            else:
+                logger.error(f"{name} not found.")
 
     def death_bunny_in_third_room(self, block, box, quantity, date_of_death: date=None):
         if date_of_death is None:
@@ -302,7 +307,7 @@ class Farm:
 
         return ','.join([x for x in who]) if who else 'порожньо'
 
-    def change_box(self, name, to_box:str):
+    def change_box(self, name: str, to_box:str):
         old_block = self.rabbits[name].block
         old_box = self.rabbits[name].box
         new_block = int(to_box.split('.')[0])
@@ -319,13 +324,9 @@ class Farm:
 
         logger.info(f'{name} stay in {to_box} box.') if name == name_in_new_box else logger.info(f'{name} move to {to_box} box.')
 
-    def swap_box(self,from_address:str, to_address:str, name_who=None):
+    def swap_box(self,from_block: int, from_box: int, to_block: int, to_box: int, name_who=None):
         name_in_from = name_who
         name_in_to = None
-        from_block = int(from_address.split('.')[0])
-        from_box = int(from_address.split('.')[1])
-        to_block = int(to_address.split('.')[0])
-        to_box = int(to_address.split('.')[1])
 
         for n, obj in self.rabbits.items():
             if obj.block == from_block and obj.box == from_box:
@@ -929,7 +930,7 @@ class Bunny:
 
         return resettle_day
 
-    def get_resettle_bunnies(self, resettle_date: date=None, bunnies: int=None, new_cage=None):
+    def get_resettle_bunnies(self, bunnies: int|None=None, resettle_date: date|None=None, new_cage=None):
         date_resettle = resettle_date.strftime(DATE_FORMAT) if resettle_date is not None else date.today().strftime(DATE_FORMAT)
         quantity = bunnies if bunnies is not None else self.nest.get_resettle_nest(new_cage)
         self.kindling[self.last_kindling]['resettle'] = quantity
