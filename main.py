@@ -73,12 +73,16 @@ def main(page: ft.Page):
               '/process_farm':ProcessFarm, '/show_process':ShowProcess, '/nests_list':NestsList}
 
     def route_change(e):
+        print(f'Was {[x.route for x in page.views]}')
 
         need_class = ROUTES.get(page.route)
         if need_class:
             new_screen = need_class(page, meatberry)
-            if new_screen.route not in [x.route for x in page.views]:
-                page.views.append(new_screen)
+            if new_screen.route in [x.route for x in page.views]:
+                page.views = [x for x in page.views if x.route != new_screen.route]
+            page.views.append(new_screen)
+
+        print(f'Now {[x.route for x in page.views]}')
         page.update()
 
     def view_pop(e):

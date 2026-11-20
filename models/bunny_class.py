@@ -34,7 +34,7 @@ class Farm:
         active_rabbits = []
 
         for bunny in self.rabbits.values():
-            if bunny.birthday is not None and bunny.status != 'culling':
+            if bunny.sex == 'female'  and bunny.status != 'culling':
                 active_rabbits.append(bunny.name)
         return active_rabbits
 

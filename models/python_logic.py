@@ -20,20 +20,17 @@ def preparing_work_data(farm: Farm):
             elif day == tomorrow:
                 tomorrow_dict.setdefault(r.name, STATUS_WORK[work])
 
-    print('Y:',yesterday_dict)
-    print('T:',today_dict)
-    print('T+1:',tomorrow_dict)
-
     return yesterday_dict, today_dict, tomorrow_dict
 
 
-def get_data_widget_for_works_by_day(data: dict[str, str] | None):
+def get_data_for_widget_for_works_by_day(data: dict[str, str] | None):
     if data:
         processes = {}
         for name, process in data.items():
             processes.setdefault(process, []).append(name)
 
         return processes
+
     else:
         return {}
 

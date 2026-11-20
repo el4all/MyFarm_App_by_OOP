@@ -4,14 +4,15 @@ import flet as ft
 
 from datetime import date, timedelta
 
-from flet.controls import border
+
 
 from helper_defs import (file_upload_google,get_value_for_checkboxes,get_temp_for_dict_type, save_value_for_checkboxes,
                          save_temp_for_dict_type)
 from models.bunny_class import Farm, Bunny, Box, STATUS_FOR_STR, STATUS_WORK
-from views.components import FarmSortBar,LeftBlock,RightBlock,BlockNumberSix, get_elements_for_bottom_bar
+from views.components import (FarmSortBar,LeftBlock,RightBlock,BlockNumberSix,
+                              get_widget_for_works_by_day, get_container_with_date)
 from models.python_logic import (preparing_work_data,preparing_data_for_blocks_in_third_room,average_age_farm,
-                                 get_planned_work, get_status_for_mate)
+                                 get_planned_work, get_status_for_mate, get_data_for_widget_for_works_by_day)
 
 COLOR_STATUS = dict([('new', ft.Colors.GREEN_500), ('culling', ft.Colors.RED_500), ('waiting_for_kindling', ft.Colors.BLUE_500),
                      ('mated',ft.Colors.YELLOW_500), ('mated_mother',ft.Colors.YELLOW_500),
@@ -33,13 +34,85 @@ def on_keyboard_event(e: ft.KeyboardEvent):
 
 
 class CustomBottomBar(ft.BottomAppBar):
-    def __init__(self, left_control: ft.Control|None = None):
-        right_button = ft.Container(ft.Icon(ft.Icons.ARROW_BACK_IOS), on_click=lambda e: _go_back(e))
-        home, blocks, nests, processes, feeding ,info = get_elements_for_bottom_bar()
+    def __init__(self, main_page: ft.Page):
+        self.main_page = main_page
+        home, blocks, nests, processes, feeding ,info = self.get_elements_for_bottom_bar()
 
         super().__init__(bgcolor=ft.Colors.WHITE_70,
                          content=ft.Row(controls=[home, blocks, nests, processes, feeding, info],
                                       alignment=ft.MainAxisAlignment.SPACE_BETWEEN))
+
+    def get_elements_for_bottom_bar(self):
+            home = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.HOME, size=20),
+                        ft.Text('Головна', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/main_menu')
+            )
+
+            blocks = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.APPS, size=20),
+                        ft.Text('Блоки', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/blocks_farm')
+            )
+
+            nests = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.CRUELTY_FREE, size=20),
+                        ft.Text('Гнізда', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/nests_list')
+            )
+
+            info = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.INFO, size=20),
+                        ft.Text('Інфо', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/farm_info')
+            )
+
+            feeding = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.GRASS, size=20),
+                        ft.Text('Відгодівля', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/third_room')
+            )
+
+            processes = ft.Container(
+                ft.Column(
+                    [
+                        ft.Icon(ft.Icons.CALENDAR_MONTH, size=20),
+                        ft.Text('Процеси', size=10)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                on_click=lambda e: self._to_next_screen('/process_farm')
+            )
+
+            return home, blocks, nests, processes, feeding, info
+
+    def _to_next_screen(self, next_screen: str):
+        self.main_page.navigate(next_screen)
 
 
 class CustomAppBar(ft.AppBar):
@@ -58,7 +131,7 @@ class MainMenuView(ft.View):
         self.title_label = ft.Text('Головне меню ферми', size=20)
         self.theme_change_btn = ft.IconButton(icon=ft.Icon(ft.Icons.SETTINGS), on_click=self.change_theme)
         self.sync_btn = ft.IconButton(icon=ft.Icon(ft.Icons.SYNC), on_click=self._synchronization)
-        self.bottom_appbar = CustomBottomBar(left_control=None)
+        self.bottom_appbar = CustomBottomBar(main_page)
         self.appbar = CustomAppBar(left_up=self.theme_change_btn, title=self.title_label, right_up=self.sync_btn)
         # self.controls = [ft.Column(controls=[ft.Text('Головне меню ферми', size=16, weight=ft.FontWeight.W_500),
         #                                   ft.ListTile(leading=ft.Icon(ft.Icons.PETS), title=ft.Text('Кролиці'),
@@ -77,6 +150,7 @@ class MainMenuView(ft.View):
         #                                               on_click=lambda e: self._to_next_screen('/farm_info'))])]
         self.get_elements_for_today_works()
         total_working_rabbits_widget, feeding_rabbits_widget, bunnies_widget, culling_widget = self.get_elements_for_quantity_widget()
+        yesterday_widget, today_widget, tomorrow_widget = self.get_elements_for_today_works()
         self.controls = [
             ft.Column(
                 [
@@ -98,18 +172,21 @@ class MainMenuView(ft.View):
                     ft.Container(
                         ft.Column(
                             [
-                                self.yesterday_work_widget,
-                                self.today_work_widget,
-                                self.tomorrow_work_widget
+                                yesterday_widget,
+                                today_widget,
+                                tomorrow_widget
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            spacing=2
+                            spacing=2,
+                            expand=True
                         ),
                         border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
                         border_radius=5,
-                        padding=ft.Padding.all(2)
+                        padding=ft.Padding.all(2),
+                        expand=True
                     )
-                ]
+                ],
+                height=self.main_page.height - 270
             )
         ]
 
@@ -118,7 +195,10 @@ class MainMenuView(ft.View):
         self.bottom_appbar.bgcolor = ft.Colors.WHITE_70 if self.main_page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLACK_12
         self.main_page.update()
 
-    def _to_next_screen(self, next_screen: str):
+    def _to_next_screen(self, e, next_screen: str):
+        if e.control.data:
+            self.main_page.data = e.control.data
+
         self.main_page.navigate(next_screen)
 
     def _synchronization(self):
@@ -146,10 +226,14 @@ class MainMenuView(ft.View):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
-            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
             border_radius=5,
             expand=True,
-            bgcolor=ft.Colors.SURFACE
+            bgcolor=ft.Colors.SURFACE,
+            data={'rabbits_obj_list':
+                      sorted([x for x in self.farm.rabbits.values() if x.name in self.farm.active],
+                             key=lambda x: (x.block, x.box))},
+            on_click=lambda e: self._to_next_screen(e,'/rabbits_list')
         )
 
         feeding_rabbits_widget = ft.Container(
@@ -161,10 +245,11 @@ class MainMenuView(ft.View):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
-            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
             border_radius=5,
             expand=True,
-            bgcolor=ft.Colors.SURFACE
+            bgcolor=ft.Colors.SURFACE,
+            on_click=lambda e: self._to_next_screen(e,'/third_room')
         )
 
         bunnies_widget = ft.Container(
@@ -176,10 +261,11 @@ class MainMenuView(ft.View):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
-            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
             border_radius=5,
             expand=True,
-            bgcolor=ft.Colors.SURFACE
+            bgcolor=ft.Colors.SURFACE,
+            on_click=lambda e: self._to_next_screen(e,'/nests_list')
         )
 
         culling_widget = ft.Container(
@@ -191,19 +277,88 @@ class MainMenuView(ft.View):
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
-            border=ft.Border.all(2, ft.Colors.ON_SURFACE_VARIANT),
+            border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
             border_radius=5,
             expand=True,
-            bgcolor=ft.Colors.SURFACE
+            bgcolor=ft.Colors.SURFACE,
+            data={'rabbits_obj_list':
+                      sorted([x for x in self.farm.rabbits.values() if x.status == 'culling'],
+                             key=lambda x: (x.block, x.box))},
+            on_click=lambda e: self._to_next_screen(e,'/rabbits_list')
         )
 
         return total_working_rabbits_widget, feeding_rabbits_widget, bunnies_widget, culling_widget
 
     def get_elements_for_today_works(self):
+        yesterday, today, tomorrow = preparing_work_data(self.farm)
 
+        yesterday_data = get_data_for_widget_for_works_by_day(yesterday)
+        today_data = get_data_for_widget_for_works_by_day(today)
+        tomorrow_data = get_data_for_widget_for_works_by_day(tomorrow)
 
-        yesterday_widget
+        yesterday_date_widget = get_container_with_date(date.today() - timedelta(days=1))
+        yesterday_date_widget.bgcolor = ft.Colors.RED_300
+        today_date_widget = get_container_with_date(date.today())
+        today_date_widget.bgcolor = ft.Colors.GREEN_300
+        tomorrow_date_widget = get_container_with_date(date.today() + timedelta(days=1))
+        tomorrow_date_widget.bgcolor = ft.Colors.YELLOW_300
 
+        yesterday_widget = ft.Container(
+            ft.Row(
+                [
+                    yesterday_date_widget,
+                    ft.Container(
+                        content=get_widget_for_works_by_day(yesterday_data)or ft.Column([ft.Text('Немає невиконаних робіт')],expand=True),
+                        border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
+                        border_radius=5,
+                        padding=ft.Padding.all(2),
+                        expand=True
+                    )
+                ],
+                spacing=2
+            ),
+            expand=True,
+            data=date.today() - timedelta(days=1),
+            on_click=lambda e: self._to_next_screen(e,'/show_process')
+        )
+        today_widget = ft.Container(
+            ft.Row(
+                [
+                    today_date_widget,
+                    ft.Container(
+                        content=get_widget_for_works_by_day(today_data) or ft.Column([ft.Text('Немає запланованих робіт')],expand=True),
+                        border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
+                        border_radius=5,
+                        padding=ft.Padding.all(2),
+                        expand=True
+                    )
+                ],
+                spacing=2
+            ),
+            expand=True,
+            data=date.today(),
+            on_click=lambda e: self._to_next_screen(e,'/show_process')
+        )
+        tomorrow_widget = ft.Container(
+            ft.Row(
+                [
+                    tomorrow_date_widget,
+                    ft.Container(
+                        content=get_widget_for_works_by_day(tomorrow_data)or ft.Column([ft.Text('Немає запланованих робіт')],expand=True),
+                        border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
+                        border_radius=5,
+                        padding=ft.Padding.all(2),
+                        expand=True
+                    )
+                ],
+                spacing=2
+            ),
+            expand=True,
+            data=date.today() + timedelta(days=1),
+            on_click=lambda e: self._to_next_screen(e,'/show_process')
+        )
+
+        return yesterday_widget, today_widget, tomorrow_widget
 
 
 class MainRabbitsList(ft.View):
@@ -232,7 +387,7 @@ class MainRabbitsList(ft.View):
                                on_click=self.set_date_for_create_rabbit)
 
         self.appbar = CustomAppBar(left_up=None, title=self.title_label, right_up=ft.Row([add_bunny_btn,self.sort_menu]))
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
         self.controls=[self.create_rabbit_tile(x) for x in self.rabbits_obj_list]
 
     def sort_rabbits(self, e):
@@ -443,7 +598,7 @@ class RabbitCard(ft.View):
                                  on_click=lambda e: self.swap_boxes())
             ]
         )
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
         self.appbar = CustomAppBar(right_up=operation_button) if self.rabbit else CustomAppBar()
         self.controls=[
             ft.Column(
@@ -626,6 +781,8 @@ class BlocksFarm(ft.View):
         self.main_page = main_page
         self.farm = farm
         self.is_visual = False
+        self.open_tiles = set()
+        print(f'Init _{self.open_tiles}')
 
         self.pop_info_colors = ft.PopupMenuButton(icon=ft.Icon(ft.Icons.INFO),
                                                   items=[ft.PopupMenuItem(ft.Row([ft.Container(border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
@@ -636,7 +793,7 @@ class BlocksFarm(ft.View):
                                                                           on_click=lambda e: self.filter_by_color(e))
                                                          for status, color in COLOR_STATUS.items()])
 
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self._build_page()
 
@@ -652,15 +809,25 @@ class BlocksFarm(ft.View):
         if not self.is_visual:
             self.appbar = CustomAppBar(title='Список блоків', right_up=self.switch_to_visual_blocks)
 
-            self.controls = [ft.ExpansionTile(f'Блок {block}',
-                                         controls=[ft.ListTile(leading=ft.Row(controls=[ft.Icon(ft.Icons.PETS,
-                                                                                                color=COLOR_STATUS.get(x.status)) if x.status != 'culling' else
+            self.controls = [
+                ft.ExpansionTile(f'Блок {block}',
+                                 controls=[
+                                     ft.ListTile(
+                                         leading=ft.Row(
+                                             controls=[
+                                                 ft.Icon(ft.Icons.PETS,
+                                                         color=COLOR_STATUS.get(x.status)) if x.status != 'culling' else
                                                                                         ft.Icon(ft.Icons.BLOCK, ft.Colors.RED_500),
-                                                                                        ft.Text(x.name, size=18),ft.Text(x.str_block_box, size=14)],
-                                                                              alignment=ft.MainAxisAlignment.START,tight=True),
-                                                               trailing=ft.Container(ft.Icon(ft.Icons.BOOKMARK)) if x.name in self.farm.notes else ft.Container(), data=x,
-                                                               on_click=lambda e, obj=x: self._to_next_screen(e, '/rabbit_card'))
-                                                   for x in sorted(self.farm.rabbits.values(), key=lambda x: int(x.box)) if x.block == block])
+                                                 ft.Text(x.name, size=18),ft.Text(x.str_block_box, size=14)],
+                                             alignment=ft.MainAxisAlignment.START,
+                                             tight=True),
+                                         trailing=ft.Container(ft.Icon(ft.Icons.BOOKMARK)) if x.name in self.farm.notes else ft.Container(),
+                                         data=x,
+                                         on_click=lambda e, obj=x: self._to_next_screen(e, '/rabbit_card'))
+                                                   for x in sorted(self.farm.rabbits.values(), key=lambda x: int(x.box)) if x.block == block],
+                                 on_change=lambda e, b=block: self._handle_expended(b,e.control.expanded),
+                                 expanded=block in self.open_tiles
+                                 )
                              for block in sorted([x for x in set([r.block for r in self.farm.rabbits.values()])])]
         else:
             self.appbar = CustomAppBar(title='Блоки', right_up=self.switch_mode_to_list)
@@ -681,6 +848,13 @@ class BlocksFarm(ft.View):
     def _to_next_screen(self, e, next_screen: str):
             self.main_page.data = e.control.data
             self.main_page.navigate(next_screen)
+
+    def _handle_expended(self, block: int, is_expanded: bool):
+        if is_expanded:
+            self.open_tiles.add(block)
+        else:
+            self.open_tiles.discard(block)
+        print(self.open_tiles)
 
     def _switch_to_visual(self, e):
         self.is_visual = True
@@ -727,7 +901,7 @@ class ThirdRoom(ft.View):
                                          on_click=self.get_main_expansion_for_main)
 
         self.appbar = CustomAppBar(title='Відгодівля', right_up=ft.Row([self.add_box_btn, self.mass_kill_btn,ft.Text(5*' ')]))
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self.mass_kill_approve = ft.Container(content=ft.Text('Провести\n  забій', size=10),
                                            border=ft.Border.all(color=ft.Colors.RED_500, width=3),
@@ -1024,7 +1198,7 @@ class BoxInfo(ft.View):
         receive_data = main_page.data
         self.box_obj = receive_data if isinstance(receive_data, Box) else None
         self.appbar = CustomAppBar(title=f'Клітка {self.box_obj.block}.{self.box_obj.box}')
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self.controls = [ft.Text(str(self.box_obj))]
 
@@ -1040,7 +1214,7 @@ class FarmInfo(ft.View):
         self.farm = farm
 
         self.appbar = CustomAppBar(title='Інформація')
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self.controls = [self.get_average_age(), self.get_quantity_of_farm(), self.get_farm_by_status()]
 
@@ -1121,7 +1295,7 @@ class ProcessFarm(ft.View):
         self.farm = farm
 
         self.appbar = CustomAppBar(title='Процеси ферми')
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self.date_picker = ft.DatePicker(help_text='Яка дата вас цікавить?', cancel_text='Скасувати',
                                          confirm_text='Подивитися\n   процеси',
@@ -1153,6 +1327,7 @@ class ShowProcess(ft.View):
     def __init__(self, main_page: ft.Page, farm: Farm):
         super().__init__(route='/show_process', scroll=ft.ScrollMode.AUTO)
         self.main_page = main_page
+        print(f'main_page.data = {main_page.data}')
         main_page.data = main_page.data if main_page.data else date.today()
         self.farm = farm
 
@@ -1169,7 +1344,7 @@ class ShowProcess(ft.View):
                                    right_up=ft.IconButton(icon=ft.Icon(ft.Icons.ARROW_FORWARD_IOS),
                                                           on_click=lambda e: self.turn_process_by_date(True))
                                    )
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
         self.date_picker = ft.DatePicker(help_text='Оберіть нову дату', cancel_text='Скасувати',
                                          confirm_text='Змінити\n   дату',
                                          on_change=lambda e:self.change_process_data(e))
@@ -1697,7 +1872,7 @@ class NestsList(ft.View):
         self.farm = farm
 
         self.appbar = CustomAppBar(title='Гнізда')
-        self.bottom_appbar = CustomBottomBar()
+        self.bottom_appbar = CustomBottomBar(self.main_page)
 
         self.controls = self._get_controls()
 

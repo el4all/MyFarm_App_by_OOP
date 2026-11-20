@@ -1,7 +1,8 @@
 import flet as ft
 
+from datetime import date, timedelta
+
 from models.bunny_class import Farm, Bunny
-from models.python_logic import get_data_widget_for_works_by_day, preparing_work_data
 
 BOXES = dict([(1,20),(2,20),(3,20),(4,20),(5,20),(6,25),(7,20),(8,20),(9,20),(10,20),(11,12),(12,12)])
 COLOR_STATUS = dict([('new', ft.Colors.GREEN_500), ('culling', ft.Colors.RED_500), ('waiting_for_kindling', ft.Colors.BLUE_500),
@@ -147,86 +148,38 @@ class BlockNumberSix(BlockForVisual):
         self._build_main_container()
 
 
-def get_elements_for_bottom_bar():
-
-    home = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.HOME, size=20),
-                ft.Text('Головна', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    blocks = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.APPS, size=20),
-                ft.Text('Блоки', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    nests = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.CRUELTY_FREE, size=20),
-                ft.Text('Гнізда', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    info = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.INFO, size=20),
-                ft.Text('Інфо', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    feeding = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.GRASS, size=20),
-                ft.Text('Відгодівля', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    processes = ft.Container(
-        ft.Column(
-            [
-                ft.Icon(ft.Icons.CALENDAR_MONTH, size=20),
-                ft.Text('Процеси', size=10)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
-    )
-
-    return home,blocks, nests, processes, feeding,info
-
 def get_widget_for_works_by_day(data: dict[str, list[str]]|None):
     if data:
-        widgets = ft.Column()
+        widgets = ft.Column(expand=True,scroll=ft.ScrollMode.AUTO)
         for work, names in data.items():
             little_widget = ft.Container(
-                ft.Row(
-                    [
-
-                    ]
-                )
+                ft.Text(f'{work}: {len(names)}')
             )
 
+            widgets.controls.append(little_widget)
 
+        return widgets
 
+    else:
+        return {}
 
+def get_container_with_date(date_: date):
+    month = {1:"січ", 2:"лют", 3:'бер', 4:"квіт", 5:"трав", 6:"черв", 7:"лип", 8:"серп", 9:"вер", 10:"жовт", 11:"лист", 12:"груд"}
 
-
-
+    return ft.Container(
+        ft.Column(
+            [
+                ft.Container(
+                    ft.Text(f'{date_.day}', size=25, weight=ft.FontWeight.BOLD)
+                ),
+                ft.Container(
+                    ft.Text(f'{month.get(date_.month)}', size=10, weight=ft.FontWeight.BOLD)
+                )
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        ),
+        border=ft.Border.all(1, ft.Colors.ON_SURFACE_VARIANT),
+        border_radius=5,
+        padding=5
+    )
 
